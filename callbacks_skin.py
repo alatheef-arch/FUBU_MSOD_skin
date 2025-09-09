@@ -163,3 +163,47 @@ def update_zone_weight_summary(skin_data_json):
         summary_df.to_dict("records"),
         [{"name": i, "id": i} for i in summary_df.columns],
     )
+
+
+@app.callback(
+    [
+        Output("skin-properties-modal", "is_open", allow_duplicate=True),
+        Output("editing-zone-store", "data", allow_duplicate=True),
+        Output("skin-modal-enable-thickness-checkbox", "value"),
+        Output("skin-modal-target-thickness-input", "value"),
+        Output("skin-modal-target-density-input", "value"),
+    ],
+    [
+        Input("final-zone-grid", "active_cell"),
+        Input("skin-tab-final-zone-grid", "active_cell"),
+    ],
+    State("custom-panels-store", "data"),
+    prevent_initial_call=True,
+)
+def open_skin_properties_modal(main_tab_cell, skin_tab_cell, stored_panels):
+    """Opens the modal to edit skin properties when a zone is clicked."""
+    ctx = dash.callback_context
+    if not ctx.triggered or not ctx.triggered[0]["value"]:
+        return False, None, [], None, None
+
+    panel_to_edit = _get_panel_for_active_cell(ctx.triggered[0]["value"], stored_panels)
+    if not panel_to_edit:
+        return False, None, [], None, None
+
+    thickness = panel_to_edit.get("target_thickness")
+    density = panel_to_edit.get("target_density")
+    checkbox_val = ["APPLY_THICKNESS"] if thickness is not None else []
+    return (True, {"name": panel_to_edit["name"]}, checkbox_val, thickness, density)
+
+
+@app.callback(
+    Output("skin-properties-modal", "is_open", allow_duplicate=True),
+    Input("skin-modal-close-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def close_skin_properties_modal(n_clicks):
+    """Closes skin properties modal"""
+    return False if n_clicks else dash.no_update
+
+
+
