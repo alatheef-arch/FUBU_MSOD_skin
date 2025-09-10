@@ -24,11 +24,17 @@ STRINGER_PITCH_COLUMN_ID = "Stringer Pitch (mm)"
         Output("skin-tab-final-zone-grid", "style_data_conditional", allow_duplicate=True),
         Output("skin-tab-final-zone-grid", "tooltip_data", allow_duplicate=True),
     ],
-    [Input("main-data-store", "data"), Input("custom-panels-store", "data")],
+    [
+        Input("main-data-store", "data"),
+        Input("custom-panels-store", "data"),
+        Input("dynamic-layout-trigger-store", "data"),  # <-- TRIGGER ADDED
+    ],
     prevent_initial_call=True,
 )
-def update_skin_final_zone_grid(main_data_json, stored_panels):
+def update_skin_final_zone_grid(main_data_json, stored_panels, trigger):
     """Updates the Final Zone Grid on the Skin tab."""
+    if trigger is None:
+        raise PreventUpdate # <-- PREVENT INITIAL RUN
     if not main_data_json:
         return [], [], [], []
 
@@ -78,10 +84,15 @@ def update_skin_final_zone_grid(main_data_json, stored_panels):
 
 @callback(
     [Output("skin-csv-table", "data"), Output("skin-csv-table", "columns")],
-    [Input("skin-data-store", "data")],
+    [
+        Input("skin-data-store", "data"),
+        Input("dynamic-layout-trigger-store", "data"), # <-- TRIGGER ADDED
+    ],
 )
-def update_skin_tab_table(skin_data_json):
+def update_skin_tab_table(skin_data_json, trigger):
     """Updates skin tab table dynamically"""
+    if trigger is None:
+        raise PreventUpdate # <-- PREVENT INITIAL RUN
     if not skin_data_json:
         return [], []
     df_skin_final = pd.read_json(StringIO(skin_data_json), orient="split")
@@ -106,6 +117,37 @@ def update_skin_tab_table(skin_data_json):
     except Exception as e:
         print(f"Error processing skin data for table: {e}")
         return [], []
+
+
+@callback(
+    [
+        Output("zone-skin-weight-summary-table", "data"),
+        Output("zone-skin-weight-summary-table", "columns"),
+    ],
+    [
+        Input("skin-data-store", "data"),
+        Input("dynamic-layout-trigger-store", "data"), # <-- TRIGGER ADDED
+    ],
+)
+def update_zone_weight_summary(skin_data_json, trigger):
+    """Updates skin weight summary information for each zone"""
+    if trigger is None:
+        raise PreventUpdate # <-- PREVENT INITIAL RUN
+    if not skin_data_json:
+        return [], []
+    df_skin_final = pd.read_json(StringIO(skin_data_json), orient="split")
+    if df_skin_final.empty:
+        return [], []
+    summary_df = df_skin_final.groupby("Zone Name")["Weight (g)"].sum().reset_index()
+    summary_df["Weight (g)"] = summary_df["Weight (g)"] / 1000.0
+    summary_df.rename(columns={"Weight (g)": "Total Skin Weight (kg)"}, inplace=True)
+    summary_df["Total Skin Weight (kg)"] = summary_df["Total Skin Weight (kg)"].apply(
+        format_value_for_csv
+    )
+    return (
+        summary_df.to_dict("records"),
+        [{"name": i, "id": i} for i in summary_df.columns],
+    )
 
 
 @callback(
