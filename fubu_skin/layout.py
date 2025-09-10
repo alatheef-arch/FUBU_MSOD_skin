@@ -24,6 +24,9 @@ def get_layout():
         label="Skin",
         tab_id="tab-1",
         children=[
+            # This store will hold the data from the main application.
+            dcc.Store(id='skin-data-bridge-store'),
+            
             # This interval will fire once after 500ms and then stop.
             # This ensures the data stores have time to load.
             dcc.Interval(
@@ -59,6 +62,20 @@ def get_layout():
 def register_callbacks():
     """This function contains and registers all the callbacks for the skin tab."""
 
+    # This callback acts as a bridge, transferring data from the main app's store
+    # to a local store within the dynamic layout. This is the crucial fix for the
+    # race condition.
+    @callback(
+        Output("skin-data-bridge-store", "data"),
+        Input("skin-tab-init-interval", "n_intervals"),
+        State("dynamic-data-input-store", "data"),
+        prevent_initial_call=True,
+    )
+    def transfer_data_to_local_store(n_intervals, packaged_data):
+        if n_intervals == 0 or packaged_data is None:
+            raise PreventUpdate
+        return packaged_data
+
     @callback(
         [
             Output("skin-tab-final-zone-grid", "data", allow_duplicate=True),
@@ -66,14 +83,11 @@ def register_callbacks():
             Output("skin-tab-final-zone-grid", "style_data_conditional", allow_duplicate=True),
             Output("skin-tab-final-zone-grid", "tooltip_data", allow_duplicate=True),
         ],
-        # The new interval component is the trigger. It ensures the callback
-        # runs only after the initial page load is complete.
-        Input("skin-tab-init-interval", "n_intervals"),
-        State("dynamic-data-input-store", "data"),
+        Input("skin-data-bridge-store", "data"),
         prevent_initial_call=True,
     )
-    def update_skin_final_zone_grid(n_intervals, packaged_data):
-        if n_intervals == 0 or packaged_data is None or not packaged_data.get("main_data"):
+    def update_skin_final_zone_grid(packaged_data):
+        if packaged_data is None or not packaged_data.get("main_data"):
             raise PreventUpdate
 
         main_data_json = packaged_data.get("main_data")
@@ -104,12 +118,11 @@ def register_callbacks():
 
     @callback(
         [Output("skin-csv-table", "data"), Output("skin-csv-table", "columns")],
-        Input("skin-tab-init-interval", "n_intervals"),
-        State("dynamic-data-input-store", "data"),
+        Input("skin-data-bridge-store", "data"),
         prevent_initial_call=True,
     )
-    def update_skin_tab_table(n_intervals, packaged_data):
-        if n_intervals == 0 or packaged_data is None or not packaged_data.get("skin_data"):
+    def update_skin_tab_table(packaged_data):
+        if packaged_data is None or not packaged_data.get("skin_data"):
             raise PreventUpdate
         skin_data_json = packaged_data.get("skin_data")
         
@@ -130,12 +143,11 @@ def register_callbacks():
             Output("zone-skin-weight-summary-table", "data"),
             Output("zone-skin-weight-summary-table", "columns"),
         ],
-        Input("skin-tab-init-interval", "n_intervals"),
-        State("dynamic-data-input-store", "data"),
+        Input("skin-data-bridge-store", "data"),
         prevent_initial_call=True,
     )
-    def update_zone_weight_summary(n_intervals, packaged_data):
-        if n_intervals == 0 or packaged_data is None or not packaged_data.get("skin_data"):
+    def update_zone_weight_summary(packaged_data):
+        if packaged_data is None or not packaged_data.get("skin_data"):
             raise PreventUpdate
         skin_data_json = packaged_data.get("skin_data")
 
