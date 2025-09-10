@@ -24,6 +24,12 @@ def get_layout():
         children=[
             create_tab_content_layout(
                 children=[
+                    # --- ADD THIS NEW DEBUG AREA ---
+            html.Div([
+                html.H4("Debug: Data Received by Remote Callbacks"),
+                html.Pre(id='debug-remote-data-received', style={'border': '1px solid red', 'padding': '10px', 'height': '100px', 'overflowY': 'auto'})
+            ]),
+            # ---------------------------
                     *create_image_and_grid_layout(
                         image_src="/assets/skin.jpg",
                         image_max_width="80%",
@@ -46,5 +52,6 @@ def get_layout():
             )
         ],
     )
+
 
 
