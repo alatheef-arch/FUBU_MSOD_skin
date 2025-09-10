@@ -42,9 +42,6 @@ def update_skin_final_zone_grid(packaged_data, trigger):
     print(main_data_json)
     print(stored_panels)
 
-    if not main_data_json:
-        return [], [], [], []
-
     df_raw = pd.read_json(StringIO(main_data_json), orient="split")
     all_stringers = df_raw[STRINGER_PITCH_COLUMN_ID].unique()
     pivoted = df_raw.pivot_table(
@@ -103,11 +100,7 @@ def update_skin_tab_table(packaged_data, trigger):
         
     skin_data_json = packaged_data.get("skin_data")
 
-    if not skin_data_json:
-        return [], []
     df_skin_final = pd.read_json(StringIO(skin_data_json), orient="split")
-    if df_skin_final.empty:
-        return [], []
     try:
         cols_to_drop = [
             "Frame Cross Section ",
