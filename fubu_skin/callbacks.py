@@ -25,16 +25,18 @@ STRINGER_PITCH_COLUMN_ID = "Stringer Pitch (mm)"
         Output("skin-tab-final-zone-grid", "tooltip_data", allow_duplicate=True),
     ],
     [
-        Input("main-data-store", "data"),
-        Input("custom-panels-store", "data"),
-        Input("dynamic-layout-trigger-store", "data"),  # <-- TRIGGER ADDED
+        Input("dynamic-data-input-store", "data"), # <-- The ONLY data input
+    Input("dynamic-layout-trigger-store", "data"),
     ],
     prevent_initial_call=True,
 )
-def update_skin_final_zone_grid(main_data_json, stored_panels, trigger):
+def update_skin_final_zone_grid(packaged_data, trigger):
     """Updates the Final Zone Grid on the Skin tab."""
     if trigger is None:
         raise PreventUpdate # <-- PREVENT INITIAL RUN
+
+    main_data_json = packaged_data.get("main_data")
+    stored_panels = packaged_data.get("custom_panels")
     if not main_data_json:
         return [], [], [], []
 
