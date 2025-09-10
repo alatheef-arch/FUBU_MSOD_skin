@@ -39,6 +39,9 @@ def update_skin_final_zone_grid(packaged_data, trigger):
     main_data_json = packaged_data.get("main_data")
     stored_panels = packaged_data.get("custom_panels")
 
+    print(main_data_json)
+    print(stored_panels)
+
     if not main_data_json:
         return [], [], [], []
 
