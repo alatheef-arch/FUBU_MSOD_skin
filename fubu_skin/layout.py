@@ -214,11 +214,11 @@ def register_callbacks():
             Output("skin-modal-target-thickness-input", "value"),
             Output("skin-modal-target-density-input", "value"),
         ],
-        [Input("final-zone-grid", "active_cell"), Input("skin-tab-final-zone-grid", "active_cell")],
+        Input("skin-tab-final-zone-grid", "active_cell"),
         State("custom-panels-store", "data"),
         prevent_initial_call=True,
     )
-    def open_skin_properties_modal(main_tab_cell, skin_tab_cell, stored_panels):
+    def open_skin_properties_modal(skin_tab_cell, stored_panels):
         ctx = dash.callback_context
         if not ctx.triggered or not ctx.triggered[0]["value"]: raise PreventUpdate
         panel_to_edit = _get_panel_for_active_cell(ctx.triggered[0]["value"], stored_panels)
