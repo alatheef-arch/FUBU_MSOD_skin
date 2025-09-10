@@ -24,10 +24,6 @@ def get_layout():
         children=[
             create_tab_content_layout(
                 children=[
-                    html.Div([
-                html.H4("Debug Output:"),
-                html.Pre(id='debug-output-div', style={'border': '1px solid red', 'padding': '10px'})
-            ]),
                     *create_image_and_grid_layout(
                         image_src="/assets/skin.jpg",
                         image_max_width="80%",
@@ -50,4 +46,5 @@ def get_layout():
             )
         ],
     )
+
 
