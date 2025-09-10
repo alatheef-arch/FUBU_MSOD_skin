@@ -1,10 +1,9 @@
 # fubu_skin
 
 from io import StringIO
-
 import dash
 import pandas as pd
-from dash import callback
+from dash import callback, dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -16,11 +15,22 @@ STRINGER_PITCH_COLUMN_ID = "Stringer Pitch (mm)"
 
 # --- PART 1: The Layout Definition ---
 def get_layout():
-    """Creates and returns the layout for the skin tab."""
+    """
+    Creates and returns the layout for the skin tab.
+    This layout now includes a single-use dcc.Interval component to delay the
+    initial data processing callback.
+    """
     return dbc.Tab(
         label="Skin",
         tab_id="tab-1",
         children=[
+            # This interval will fire once after 500ms and then stop.
+            # This ensures the data stores have time to load.
+            dcc.Interval(
+                id="skin-tab-init-interval",
+                interval=500,  # Firing after 500ms
+                max_intervals=1,
+            ),
             create_tab_content_layout(
                 children=[
                     *create_image_and_grid_layout(
@@ -56,15 +66,16 @@ def register_callbacks():
             Output("skin-tab-final-zone-grid", "style_data_conditional", allow_duplicate=True),
             Output("skin-tab-final-zone-grid", "tooltip_data", allow_duplicate=True),
         ],
-        [
-            Input("dynamic-data-input-store", "data"),
-            Input("dynamic-layout-trigger-store", "data"),
-        ],
+        # The new interval component is the trigger. It ensures the callback
+        # runs only after the initial page load is complete.
+        Input("skin-tab-init-interval", "n_intervals"),
+        State("dynamic-data-input-store", "data"),
         prevent_initial_call=True,
     )
-    def update_skin_final_zone_grid(packaged_data, trigger):
-        if trigger is None or packaged_data is None or not packaged_data.get("main_data"):
+    def update_skin_final_zone_grid(n_intervals, packaged_data):
+        if n_intervals == 0 or packaged_data is None or not packaged_data.get("main_data"):
             raise PreventUpdate
+
         main_data_json = packaged_data.get("main_data")
         stored_panels = packaged_data.get("custom_panels")
 
@@ -93,16 +104,15 @@ def register_callbacks():
 
     @callback(
         [Output("skin-csv-table", "data"), Output("skin-csv-table", "columns")],
-        [
-            Input("dynamic-data-input-store", "data"),
-            Input("dynamic-layout-trigger-store", "data"),
-        ]
+        Input("skin-tab-init-interval", "n_intervals"),
+        State("dynamic-data-input-store", "data"),
+        prevent_initial_call=True,
     )
-    def update_skin_tab_table(packaged_data, trigger):
-        if trigger is None or packaged_data is None or not packaged_data.get("skin_data"):
+    def update_skin_tab_table(n_intervals, packaged_data):
+        if n_intervals == 0 or packaged_data is None or not packaged_data.get("skin_data"):
             raise PreventUpdate
         skin_data_json = packaged_data.get("skin_data")
-
+        
         df_skin_final = pd.read_json(StringIO(skin_data_json), orient="split")
         if df_skin_final.empty:
             return [], []
@@ -120,13 +130,12 @@ def register_callbacks():
             Output("zone-skin-weight-summary-table", "data"),
             Output("zone-skin-weight-summary-table", "columns"),
         ],
-        [
-            Input("dynamic-data-input-store", "data"),
-            Input("dynamic-layout-trigger-store", "data"),
-        ]
+        Input("skin-tab-init-interval", "n_intervals"),
+        State("dynamic-data-input-store", "data"),
+        prevent_initial_call=True,
     )
-    def update_zone_weight_summary(packaged_data, trigger):
-        if trigger is None or packaged_data is None or not packaged_data.get("skin_data"):
+    def update_zone_weight_summary(n_intervals, packaged_data):
+        if n_intervals == 0 or packaged_data is None or not packaged_data.get("skin_data"):
             raise PreventUpdate
         skin_data_json = packaged_data.get("skin_data")
 
@@ -159,8 +168,8 @@ def register_callbacks():
         prevent_initial_call=True,
     )
     def save_skin_properties(
-            n_clicks, editing_zone, checkbox, thickness_val, density_val,
-            stored_panels, main_data_json, skin_data_json
+        n_clicks, editing_zone, checkbox, thickness_val, density_val,
+        stored_panels, main_data_json, skin_data_json
     ):
         if not n_clicks or not editing_zone: raise PreventUpdate
         try:
@@ -182,7 +191,7 @@ def register_callbacks():
             stringer_pitch = stringer_pitch_values[coord["row"]]
             frame_pitch = coord["column_id"]
             skin_mask = ((df_skin_final["Zone Name"] == zone_to_edit) & (df_skin_final["Row"] == stringer_pitch) & (
-                        df_skin_final["Column"] == frame_pitch))
+                df_skin_final["Column"] == frame_pitch))
             if skin_mask.any():
                 df_skin_final.loc[skin_mask, "Skin Density (g/cm³)"] = new_density
                 if apply_thickness:
@@ -227,4 +236,3 @@ def register_callbacks():
     def close_skin_properties_modal(n_clicks):
         if not n_clicks: raise PreventUpdate
         return False
-
