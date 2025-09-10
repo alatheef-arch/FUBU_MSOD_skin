@@ -20,13 +20,13 @@ STRINGER_PITCH_COLUMN_ID = "Stringer Pitch (mm)"
     prevent_initial_call=True
 )
 def update_skin_final_zone_grid(main_data_json, stored_panels):
-    """Updates the Final Zone Grid on the Skin tab."""
+    """Updates the Final Zone Grid on the Skin tab, ensuring it is identical to the main grid."""
     if not main_data_json:
         return [], [], [], []
 
     df_raw = pd.read_json(StringIO(main_data_json), orient="split")
-    
-    # Correctly pivot the data while preserving row order
+
+    # --- FIX: Use the exact same robust pivoting logic as the main grid ---
     all_stringers = df_raw[STRINGER_PITCH_COLUMN_ID].unique()
     pivoted = df_raw.pivot_table(
         index=STRINGER_PITCH_COLUMN_ID,
@@ -39,8 +39,7 @@ def update_skin_final_zone_grid(main_data_json, stored_panels):
 
     columns = [{"name": c if c != STRINGER_PITCH_COLUMN_ID else "", "id": c} for c in df_grid_display.columns]
     
-    # --- FIX: Create a blank grid for the visual display ---
-    # Instead of showing numbers, we show an empty grid that gets colored.
+    # Create a blank grid for the visual display
     grid_data_df = df_grid_display.copy()
     for col in grid_data_df.columns:
         if col != STRINGER_PITCH_COLUMN_ID:
