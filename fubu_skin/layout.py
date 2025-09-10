@@ -1,4 +1,4 @@
-// fubu_skin
+# fubu_skin
 
 from io import StringIO
 
@@ -227,3 +227,4 @@ def register_callbacks():
     def close_skin_properties_modal(n_clicks):
         if not n_clicks: raise PreventUpdate
         return False
+
