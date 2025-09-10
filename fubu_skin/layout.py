@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
 
@@ -26,3 +26,4 @@ def register_callbacks():
             raise PreventUpdate
         # When the button is clicked, display the current time.
         return f"SUCCESS! The callback was triggered at: {datetime.datetime.now()}"
+
