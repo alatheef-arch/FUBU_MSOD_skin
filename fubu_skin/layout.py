@@ -17,8 +17,6 @@ STRINGER_PITCH_COLUMN_ID = "Stringer Pitch (mm)"
 def get_layout():
     """
     Creates and returns the layout for the skin tab.
-    This layout now includes a single-use dcc.Interval component to delay the
-    initial data processing callback.
     """
     return dbc.Tab(
         label="Skin",
@@ -27,13 +25,6 @@ def get_layout():
             # This store will hold the data from the main application.
             dcc.Store(id='skin-data-bridge-store'),
             
-            # This interval will fire once after 500ms and then stop.
-            # This ensures the data stores have time to load.
-            dcc.Interval(
-                id="skin-tab-init-interval",
-                interval=500,  # Firing after 500ms
-                max_intervals=1,
-            ),
             create_tab_content_layout(
                 children=[
                     *create_image_and_grid_layout(
@@ -63,16 +54,15 @@ def register_callbacks():
     """This function contains and registers all the callbacks for the skin tab."""
 
     # This callback acts as a bridge, transferring data from the main app's store
-    # to a local store within the dynamic layout. This is the crucial fix for the
-    # race condition.
+    # to a local store within the dynamic layout. The callback now triggers
+    # whenever the main data store is updated, preventing the race condition.
     @callback(
         Output("skin-data-bridge-store", "data"),
-        Input("skin-tab-init-interval", "n_intervals"),
-        State("dynamic-data-input-store", "data"),
+        Input("dynamic-data-input-store", "data"),
         prevent_initial_call=True,
     )
-    def transfer_data_to_local_store(n_intervals, packaged_data):
-        if n_intervals == 0 or packaged_data is None:
+    def transfer_data_to_local_store(packaged_data):
+        if packaged_data is None:
             raise PreventUpdate
         return packaged_data
 
