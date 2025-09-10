@@ -1,15 +1,48 @@
-"""
-Defines all callbacks for updating the skin tab of the Dash application.
-"""
+# fubu_skin/callbacks.py
+"""Defines all callbacks for updating the skin tab of the Dash application."""
 
 from io import StringIO
-
 import dash
-import pandas as pd  # type: ignore
+import pandas as pd
 from dash.dependencies import Input, Output, State
 
 from app import app
 from data_processing.helpers import format_value_for_csv
+from data_processing.data_transformer import (
+    generate_merged_zone_styles,
+    generate_zone_tooltips,
+)
+from callbacks.callbacks_interactive import _get_panel_for_active_cell
+
+STRINGER_PITCH_COLUMN_ID = "Stringer Pitch (mm)"
+
+@app.callback(
+    [
+        Output("skin-tab-final-zone-grid", "data", allow_duplicate=True),
+        Output("skin-tab-final-zone-grid", "columns", allow_duplicate=True),
+        Output("skin-tab-final-zone-grid", "style_data_conditional", allow_duplicate=True),
+        Output("skin-tab-final-zone-grid", "tooltip_data", allow_duplicate=True),
+    ],
+    [Input("main-data-store", "data"), Input("custom-panels-store", "data")],
+    prevent_initial_call=True
+)
+def update_skin_final_zone_grid(main_data_json, stored_panels):
+    """Updates the Final Zone Grid on the Skin tab."""
+    if not main_data_json:
+        return [], [], [], []
+    df_raw = pd.read_json(StringIO(main_data_json), orient="split")
+    pivoted = df_raw.pivot_table(
+        index=STRINGER_PITCH_COLUMN_ID,
+        columns="Frame Pitch (ID)",
+        values="Skin Thickness (mm)",
+        aggfunc="first",
+        sort=False,
+    ).reset_index()
+    columns = [{"name": c, "id": c} for c in pivoted.columns]
+    grid_data = pivoted.to_dict("records")
+    tooltips = generate_zone_tooltips(main_data_json, stored_panels)
+    styles = generate_merged_zone_styles(columns, stored_panels)
+    return grid_data, columns, styles, tooltips
 
 
 @app.callback(
@@ -39,15 +72,11 @@ def update_skin_tab_table(skin_data_json):
             df_formatted.to_dict("records"),
             [{"name": i, "id": i} for i in df_formatted.columns],
         )
-    # pylint: disable=broad-exception-caught
     except Exception as e:
         print(f"Error processing skin data for table: {e}")
         return [], []
 
 
-# FIX: Disabled warnings related to the high number of arguments and variables,
-# which is a common pattern for complex modal-saving callbacks in Dash.
-# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
 @app.callback(
     [
         Output("custom-panels-store", "data", allow_duplicate=True),
@@ -204,7 +233,3 @@ def open_skin_properties_modal(main_tab_cell, skin_tab_cell, stored_panels):
 def close_skin_properties_modal(n_clicks):
     """Closes skin properties modal"""
     return False if n_clicks else dash.no_update
-
-
-
-
