@@ -199,7 +199,7 @@ def save_skin_properties(
     )
 
 
-@acallback(
+@callback(
     [
         Output("zone-skin-weight-summary-table", "data"),
         Output("zone-skin-weight-summary-table", "columns"),
