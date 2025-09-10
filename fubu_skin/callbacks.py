@@ -30,7 +30,17 @@ def register_callbacks():
     Placing all callbacks inside this function ensures they are correctly
     registered when the file is executed by the dynamic loader.
     """
-
+    # --- ADD THIS NEW DEBUG CALLBACK AT THE TOP ---
+    @callback(
+        Output('debug-remote-data-received', 'children'),
+        Input('dynamic-data-input-store', 'data')
+    )
+    def debug_data_receiver(packaged_data):
+        if packaged_data is None:
+            return "No data received yet."
+        # Display the received data in a readable format
+        return json.dumps(packaged_data, indent=2)
+    # ---------------------------------------------
     # --- DATA LOADING CALLBACKS ---
     # These three callbacks listen to the data pipeline and trigger to populate the grids.
 
